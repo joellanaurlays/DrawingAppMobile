@@ -45,23 +45,29 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    overflow: 'hidden',
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  canvasPlaceholderText: {
-    color: COLORS.indigoTart,
-    fontSize: 18,
-    fontWeight: '600',
+  // Styles pour le texte indicatif au centre de l'écran
+  placeholderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    pointerEvents: 'none', 
   },
-  canvasSubPlaceholderText: {
+  placeholderText: {
     color: COLORS.champagneSilk,
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: 16,
+    fontWeight: '500',
+    opacity: 0.7,
   },
   toolbar: {
     height: 75,
@@ -78,11 +84,16 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   toolCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  // Bordure pour mettre en valeur la couleur sélectionnée
+  toolCircleSelected: {
     borderColor: COLORS.champagneSilk,
+    transform: [{ scale: 1.1 }], // Grossit légèrement le cercle sélectionné
   },
   toolActionGroup: {
     flexDirection: 'row',
@@ -98,5 +109,6 @@ export const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 20,
+    color: COLORS.white,
   },
 });

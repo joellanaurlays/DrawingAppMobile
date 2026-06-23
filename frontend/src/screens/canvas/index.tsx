@@ -1,57 +1,144 @@
 // src/screens/canvas/index.tsx
-import React from 'react';
-import { Text, View, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../constants/theme';
+import React, { useState, useRef } from 'react';
+import { 
+  Text, 
+  View, 
+  TouchableOpacity, 
+  PanResponder, 
+  GestureResponderEvent 
+} from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { styles } from './styles';
+import { COLORS } from '../../constants/theme';
 
 interface CanvasScreenProps {
   onLogout: () => void;
 }
 
+interface Line {
+  path: string;
+  color: string;
+}
+
 export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
+  const [currentLines, setCurrentLines] = useState<Line[]>([]);
+  const [selectedColor, setSelectedColor] = useState<string>(COLORS.indigoTart);
+  const currentPath = useRef<string>('');
+
+  // Gestion du dessin au toucher
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      
+      // Début du tracé
+      onPanResponderGrant: (evt: GestureResponderEvent) => {
+        const { locationX, locationY } = evt.nativeEvent;
+        currentPath.current = `M ${locationX.toFixed(1)} ${locationY.toFixed(1)}`;
+        setCurrentLines((prev) => [...prev, { path: currentPath.current, color: selectedColor }]);
+      },
+      
+      // Pendant le déplacement du doigt
+      onPanResponderMove: (evt: GestureResponderEvent) => {
+        const { locationX, locationY } = evt.nativeEvent;
+        if (currentPath.current) {
+          currentPath.current += ` L ${locationX.toFixed(1)} ${locationY.toFixed(1)}`;
+          
+          // Mettre à jour la dernière ligne en cours de tracé
+          setCurrentLines((prev) => {
+            const next = [...prev];
+            if (next.length > 0) {
+              next[next.length - 1] = { path: currentPath.current, color: selectedColor };
+            }
+            return next;
+          });
+        }
+      },
+      
+      onPanResponderRelease: () => {
+        currentPath.current = '';
+      },
+    })
+  ).current;
+
+  // Action : Effacer tout le tableau
+  const clearCanvas = () => {
+    setCurrentLines([]);
+    currentPath.current = '';
+  };
+
+  // Action : Annuler le dernier trait (Undo)
+  const undoLastAction = () => {
+    setCurrentLines((prev) => prev.slice(0, -1));
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Barre supérieure d'actions */}
+    <View style={styles.container}>
+      
+      {/* 1. Barre supérieure (Header) */}
       <View style={styles.headerBar}>
+        <Text style={styles.roomTitle}>Salle de Dessin #1</Text>
         <TouchableOpacity style={styles.headerButton} onPress={onLogout}>
-          <Ionicons name="exit-outline" size={20} color={COLORS.white} />
           <Text style={styles.headerButtonText}>Quitter</Text>
         </TouchableOpacity>
-        
-        <Text style={styles.roomTitle}>Salon #001</Text>
-        
-        <TouchableOpacity style={styles.headerButton} onPress={() => Alert.alert('Succès', 'Dessin sauvegardé')}>
-          <Ionicons name="save-outline" size={20} color={COLORS.white} />
-          <Text style={styles.headerButtonText}>Sauver</Text>
-        </TouchableOpacity>
       </View>
 
-      {/* Zone centrale du Canvas */}
+      {/* 2. Zone de dessin (Canvas) */}
       <View style={styles.canvasContainer}>
-        <View style={styles.canvas}>
-          <Text style={styles.canvasPlaceholderText}>Espace de Dessin Collaboratif</Text>
-          <Text style={styles.canvasSubPlaceholderText}>(Prêt pour l'étape 2 : Moteur de dessin local)</Text>
+        <View style={styles.canvas} {...panResponder.panHandlers}>
+          <Svg style={StyleSheet.absoluteFill}>
+            {currentLines.map((line, index) => (
+              <Path
+                key={index}
+                d={line.path}
+                fill="none"
+                stroke={line.color}
+                strokeWidth={4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ))}
+          </Svg>
+          {currentLines.length === 0 && (
+            <View style={styles.placeholderContainer}>
+              <Text style={styles.placeholderText}>Touchez l'écran pour dessiner</Text>
+            </View>
+          )}
         </View>
       </View>
 
-      {/* Barre d'outils inférieure */}
+      {/* 3. Barre d'outils inférieure (Toolbar) */}
       <View style={styles.toolbar}>
-        <View style={styles.toolGroup}>
-          <TouchableOpacity style={[styles.toolCircle, { backgroundColor: COLORS.mulberryNight }]} />
-          <TouchableOpacity style={[styles.toolCircle, { backgroundColor: COLORS.indigoTart }]} />
-          <TouchableOpacity style={[styles.toolCircle, { backgroundColor: COLORS.glaceApricot }]} />
-        </View>
         
+        {/* Sélection des couleurs de ton thème */}
+        <View style={styles.toolGroup}>
+          {[COLORS.indigoTart, COLORS.mulberryNight, COLORS.glaceApricot, COLORS.crushedCacao].map((color) => (
+            <TouchableOpacity
+              key={color}
+              style={[
+                styles.toolCircle,
+                { backgroundColor: color },
+                selectedColor === color && styles.toolCircleSelected
+              ]}
+              onPress={() => setSelectedColor(color)}
+            />
+          ))}
+        </View>
+
+        {/* Boutons d'actions */}
         <View style={styles.toolActionGroup}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="pencil" size={22} color={COLORS.white} />
+          <TouchableOpacity style={styles.actionButton} onPress={undoLastAction}>
+            <Text style={styles.actionButtonText}>↩</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="trash-bin" size={22} color={COLORS.white} />
+          <TouchableOpacity style={styles.actionButton} onPress={clearCanvas}>
+            <Text style={styles.actionButtonText}>🗑️</Text>
           </TouchableOpacity>
         </View>
+
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
+
+// Petit hack propre pour éviter l'import inutile de StyleSheet dans le corps
+const StyleSheet = { absoluteFill: { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 } };
