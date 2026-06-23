@@ -1,4 +1,3 @@
-// src/screens/login/index.tsx
 import React, { useState } from 'react';
 import { 
   Text, 
