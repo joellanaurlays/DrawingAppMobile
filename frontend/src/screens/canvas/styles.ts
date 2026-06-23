@@ -1,4 +1,3 @@
-// src/screens/canvas/styles.ts
 import { StyleSheet } from 'react-native';
 import { COLORS } from '../../constants/theme';
 
@@ -19,13 +18,10 @@ export const styles = StyleSheet.create({
   },
   roomTitle: {
     color: COLORS.champagneSilk,
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
   headerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 6,
@@ -39,20 +35,13 @@ export const styles = StyleSheet.create({
   canvasContainer: {
     flex: 1,
     padding: 16,
-    justifyContent: 'center',
   },
   canvas: {
     flex: 1,
     backgroundColor: COLORS.white,
     borderRadius: 12,
     overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
-  // Styles pour le texte indicatif au centre de l'écran
   placeholderContainer: {
     position: 'absolute',
     top: 0,
@@ -61,54 +50,91 @@ export const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    pointerEvents: 'none', 
+    pointerEvents: 'none',
   },
   placeholderText: {
     color: COLORS.champagneSilk,
     fontSize: 16,
-    fontWeight: '500',
-    opacity: 0.7,
+    opacity: 0.6,
+  },
+  controlPanel: {
+    backgroundColor: COLORS.mulberryNight,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.champagneSilk,
+    paddingBottom: 20,
+  },
+  sizeSelectorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(206, 179, 171, 0.2)',
+  },
+  label: {
+    color: COLORS.champagneSilk,
+    fontSize: 14,
+    marginRight: 12,
+  },
+  sizeButtonsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  sizeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sizeButtonActive: {
+    backgroundColor: COLORS.glaceApricot,
+  },
+  sizeDot: {
+    backgroundColor: COLORS.white,
   },
   toolbar: {
-    height: 75,
-    backgroundColor: COLORS.mulberryNight,
+    height: 65,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.champagneSilk,
+    paddingHorizontal: 20,
+    marginTop: 5,
   },
   toolGroup: {
     flexDirection: 'row',
     gap: 12,
   },
   toolCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  // Bordure pour mettre en valeur la couleur sélectionnée
   toolCircleSelected: {
     borderColor: COLORS.champagneSilk,
-    transform: [{ scale: 1.1 }], // Grossit légèrement le cercle sélectionné
+    transform: [{ scale: 1.1 }],
   },
   toolActionGroup: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
   actionButton: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 8,
     backgroundColor: COLORS.indigoTart,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  eraserButtonActive: {
+    backgroundColor: COLORS.glaceApricot,
+  },
   actionButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     color: COLORS.white,
   },
 });
