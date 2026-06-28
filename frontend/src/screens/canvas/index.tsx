@@ -14,6 +14,7 @@ import { styles } from './styles';
 import { COLORS } from '../../constants/theme';
 
 interface CanvasScreenProps {
+  roomId: string;
   onLogout: () => void;
 }
 
@@ -25,9 +26,8 @@ interface Line {
 
 // Configuration de l'URL du serveur en fonction de la plateforme
 const SERVER_URL = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.0.198:3000';
-const ROOM_ID = 'salon-dessin-1';
 
-export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
+export default function CanvasScreen({ roomId, onLogout }: CanvasScreenProps) {
   const [currentLines, setCurrentLines] = useState<Line[]>([]);
   const [selectedColor, setSelectedColor] = useState<string>(COLORS.indigoTart);
   const [strokeWidth, setStrokeWidth] = useState<number>(4);
@@ -41,32 +41,29 @@ export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
 
   // Initialisation et écouteurs WebSockets
   useEffect(() => {
-    socketRef.current = io(SERVER_URL);
+      socketRef.current = io(SERVER_URL);
 
-    // Rejoindre le salon spécifique
-    socketRef.current.emit('join-room', ROOM_ID);
+      // Rejoindre la salle dynamique transmise par Firestore
+      socketRef.current.emit('join-room', roomId);
 
-    // Charger l'historique du tableau
-    socketRef.current.on('init-canvas', (existingLines: Line[]) => {
-      setCurrentLines(existingLines);
-    });
+      socketRef.current.on('init-canvas', (existingLines: Line[]) => {
+        setCurrentLines(existingLines);
+      });
 
-    // Recevoir les tracés des autres utilisateurs
-    socketRef.current.on('receive-line', (newLine: Line) => {
-      setCurrentLines((prev) => [...prev, newLine]);
-    });
+      socketRef.current.on('receive-line', (newLine: Line) => {
+        setCurrentLines((prev) => [...prev, newLine]);
+      });
 
-    // Écouter si le tableau est vidé à distance
-    socketRef.current.on('canvas-cleared', () => {
-      setCurrentLines([]);
-    });
+      socketRef.current.on('canvas-cleared', () => {
+        setCurrentLines([]);
+      });
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
-  }, []);
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+        }
+      };
+  }, [roomId]);
 
   // Gestionnaire des mouvements tactiles et de souris (PanResponder)
   const panResponder = useRef(
@@ -112,7 +109,8 @@ export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
             color: activeColor, 
             strokeWidth: strokeWidth 
           };
-          socketRef.current.emit('send-line', { room: ROOM_ID, line: finishedLine });
+          // Utilisation du roomId dynamique
+          socketRef.current.emit('send-line', { room: roomId, line: finishedLine });
         }
         currentPath.current = '';
       },
@@ -124,7 +122,8 @@ export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
     setCurrentLines([]);
     currentPath.current = '';
     if (socketRef.current) {
-      socketRef.current.emit('clear-canvas', ROOM_ID);
+      // Utilisation du roomId dynamique
+      socketRef.current.emit('clear-canvas', roomId);
     }
   };
 
@@ -138,9 +137,8 @@ export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
       
       {/* header */}
       <View style={styles.headerBar}>
-        <Text style={styles.roomTitle}>Studio de Dessin Partagé</Text>
+        <Text style={styles.roomTitle}>Salon : {roomId.substring(0, 6)}...</Text>
         
-        {/* Bouton pour quitter et revenir à l'écran de connexion */}
         <TouchableOpacity style={styles.headerButton} onPress={onLogout}>
           <Text style={styles.headerButtonText}>Quitter</Text>
         </TouchableOpacity>
@@ -148,10 +146,8 @@ export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
 
       {/* canvas */}
       <View style={styles.canvasContainer}>
-        {/* Vue réactive qui intercepte les mouvements de l'utilisateur */}
         <View style={styles.canvas} {...panResponder.panHandlers}>
           
-          {/* Composant SVG pour le rendu vectoriel des lignes */}
           <Svg style={StyleSheet.absoluteFill}>
             {currentLines.map((line, index) => (
               <Path
@@ -166,7 +162,6 @@ export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
             ))}
           </Svg>
           
-          {/* Affichage d'un texte indicatif si le tableau est complètement vide */}
           {currentLines.length === 0 && (
             <View style={styles.placeholderContainer}>
               <Text style={styles.placeholderText}>À vos pinceaux !</Text>
@@ -175,36 +170,34 @@ export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
         </View>
       </View>
 
-      {/* control panel */}
+      {/*  Réglages et barre d'outils */}
       <View style={styles.controlPanel}>
         
         {/* LIGNE DE SÉLECTION D'ÉPAISSEUR */}
         <View style={styles.sizeSelectorRow}>
           <Text style={styles.label}>Épaisseur :</Text>
           <View style={styles.sizeButtonsGroup}>
-            {/* Boucle sur les tailles disponibles (2px, 4px, 8px, 16px) */}
             {[2, 4, 8, 16].map((size) => (
               <TouchableOpacity
                 key={size}
                 style={[styles.sizeButton, strokeWidth === size && styles.sizeButtonActive]}
                 onPress={() => setStrokeWidth(size)}
               >
-                {/* Pastille visuelle proportionnelle à l'épaisseur */}
                 <View style={[styles.sizeDot, { width: size, height: size, borderRadius: size / 2 }]} />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* toolbar */}
+        {/* BARRE D'OUTILS */}
         <View style={styles.toolbar}>
           
-          {/* Section gauche : Les cercles de couleur de ton thème */}
+          {/* Palette de couleurs de mon thème */}
           <View style={styles.toolGroup}>
             {[COLORS.indigoTart, COLORS.mulberryNight, COLORS.glaceApricot, COLORS.crushedCacao].map((color) => (
               <TouchableOpacity
                 key={color}
-                disabled={isEraser} // Désactivé si la gomme est active pour éviter les confusions
+                disabled={isEraser}
                 style={[
                   styles.toolCircle,
                   { backgroundColor: color, opacity: isEraser ? 0.3 : 1 },
@@ -215,10 +208,10 @@ export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
             ))}
           </View>
 
-          {/* Outil Gomme, Retour arrière et Réinitialisation */}
+          {/* Outil Gomme, Retour arrière et Réinitialisation avec icônes vectorielles */}
           <View style={styles.toolActionGroup}>
             
-            {/* Bouton de bascule Mode Pinceau / Mode Gomme */}
+            {/* Bouton Mode Pinceau / Mode Gomme */}
             <TouchableOpacity 
               style={[styles.actionButton, isEraser && styles.eraserButtonActive]} 
               onPress={() => setIsEraser(!isEraser)}
@@ -230,12 +223,12 @@ export default function CanvasScreen({ onLogout }: CanvasScreenProps) {
               />
             </TouchableOpacity>
 
-            {/* Bouton pour annuler le dernier tracé (Undo) */}
+            {/* Bouton Annuler (Undo) */}
             <TouchableOpacity style={styles.actionButton} onPress={undoLastAction}>
               <Ionicons name="arrow-undo-outline" size={20} color={COLORS.white} />
             </TouchableOpacity>
 
-            {/* Bouton pour vider l'ensemble de la surface de dessin (Clear) */}
+            {/* Bouton Effacer tout (Clear) */}
             <TouchableOpacity style={styles.actionButton} onPress={clearCanvas}>
               <Ionicons name="refresh-outline" size={20} color={COLORS.white} />
             </TouchableOpacity>
