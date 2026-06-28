@@ -1,3 +1,4 @@
+// src/screens/login/index.tsx
 import React, { useState } from 'react';
 import { 
   Text, 
@@ -9,6 +10,12 @@ import {
   Alert,
   Image 
 } from 'react-native';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  updateProfile 
+} from 'firebase/auth';
+import { auth } from '../../services/firebase'; // Importation de notre configuration Firebase
 import { styles } from './styles';
 
 interface LoginScreenProps {
@@ -20,27 +27,25 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // Gestion de l'état de chargement
 
-  // FILTRE EN TEMPS RÉEL : Bloque les chiffres et caractères spéciaux au clavier
   const handleNameChange = (text: string) => {
-    // On ne garde que les lettres (majuscules/minuscules, accents), les espaces et les tirets
     const filteredText = text.replace(/[^a-zA-ZÀ-ÿ\s-]/g, '');
     setName(filteredText);
   };
 
-  const handleProcess = () => {
+  const handleProcess = async () => {
     const cleanEmail = email.trim();
     const cleanPassword = password.trim();
     const cleanName = name.trim();
 
-    // 1. Contrôle des champs vides
+    // 1. Contrôles de validation locaux
     if (!cleanEmail || !cleanPassword || (isRegistering && !cleanName)) {
       const msg = 'Veuillez remplir tous les champs.';
       Platform.OS === 'web' ? alert(msg) : Alert.alert('Erreur', msg);
       return;
     }
 
-    // 2. Contrôle du format e-mail
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail)) {
       const msg = "L'adresse e-mail n'est pas valide.";
@@ -48,7 +53,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       return;
     }
 
-    // 3. Contrôle de la sécurité du mot de passe (8 caractères min, 1 chiffre, 1 car. spécial)
     const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
     if (!passwordRegex.test(cleanPassword)) {
       const msg = 'Le mot de passe doit contenir au moins 8 caractères, un chiffre et un caractère spécial.';
@@ -56,16 +60,33 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       return;
     }
 
-    if (isRegistering) {
-      const msg = 'Votre compte a bien été créé !';
-      if (Platform.OS === 'web') {
-        alert(msg);
+    setIsLoading(true);
+
+    try {
+      if (isRegistering) {
+        // LOGIQUE FIREBASE : Inscription d'un nouvel utilisateur
+        const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+        
+        // Ajouter le nom de l'utilisateur à son profil Firebase Auth
+        await updateProfile(userCredential.user, { displayName: cleanName });
+        
+        const msg = 'Votre compte a bien été créé !';
+        Platform.OS === 'web' ? alert(msg) : Alert.alert('Succès', msg);
         onLoginSuccess();
       } else {
-        Alert.alert('Succès', msg, [{ text: 'Continuer', onPress: () => onLoginSuccess() }]);
+        // LOGIQUE FIREBASE : Connexion de l'utilisateur
+        await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+        onLoginSuccess();
       }
-    } else {
-      onLoginSuccess();
+    } catch (error: any) {
+      // Gestion des erreurs Firebase courantes
+      let errorMessage = "Une erreur est survenue lors de l'authentification.";
+      if (error.code === 'auth/email-already-in-use') errorMessage = 'Cette adresse e-mail est déjà utilisée.';
+      if (error.code === 'auth/invalid-credential') errorMessage = 'Identifiants incorrects. Veuillez réessayer.';
+      
+      Platform.OS === 'web' ? alert(errorMessage) : Alert.alert('Échec', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -85,7 +106,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           />
         </View>
 
-        {/* Formulaire */}
+        {/* Formulaire unique */}
         <View style={styles.formBlock}>
           
           {isRegistering && (
@@ -94,20 +115,22 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               placeholder="Nom complet"
               placeholderTextColor="#FFFFFF"
               value={name}
-              onChangeText={handleNameChange} // Utilise le filtre au moment de presser les touches
+              onChangeText={handleNameChange}
               autoCapitalize="words"
+              editable={!isLoading}
             />
           )}
 
           <TextInput
             style={styles.inputField}
-            placeholder="E-mail ou numéro mobile"
+            placeholder="E-mail"
             placeholderTextColor="#FFFFFF"
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
             value={email}
             onChangeText={setEmail}
+            editable={!isLoading}
           />
 
           <TextInput
@@ -119,18 +142,24 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             autoCorrect={false}
             value={password}
             onChangeText={setPassword}
+            editable={!isLoading}
           />
 
-          <TouchableOpacity style={styles.mainButton} onPress={handleProcess}>
+          {/* Bouton d'authentification principal */}
+          <TouchableOpacity 
+            style={[styles.mainButton, { opacity: isLoading ? 0.6 : 1 }]} 
+            onPress={handleProcess}
+            disabled={isLoading}
+          >
             <Text style={styles.mainButtonText}>
-              {isRegistering ? "S'inscrire" : 'Se connecter'}
+              {isLoading ? 'Chargement...' : (isRegistering ? "S'inscrire" : 'Se connecter')}
             </Text>
           </TouchableOpacity>
 
           {!isRegistering && (
             <TouchableOpacity 
               style={styles.forgotLink} 
-              onPress={() => Alert.alert('Aide', 'Redirection vers la récupération de compte.')}
+              onPress={() => Alert.alert('Aide', 'Fonctionnalité bientôt disponible.')}
             >
               <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
             </TouchableOpacity>
@@ -142,10 +171,12 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           <TouchableOpacity 
             style={styles.switchButton} 
             onPress={() => {
-              setIsRegistering(!isRegistering);
-              setEmail('');
-              setPassword('');
-              setName('');
+              if (!isLoading) {
+                setIsRegistering(!isRegistering);
+                setEmail('');
+                setPassword('');
+                setName('');
+              }
             }}
           >
             <Text style={styles.switchButtonText}>
