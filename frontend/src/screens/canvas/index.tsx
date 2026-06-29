@@ -29,7 +29,7 @@ interface Line {
 }
 
 // Configuration de l'URL du serveur de dessin en fonction de l'environnement
-const SERVER_URL = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.0.198:3000';
+const SERVER_URL = 'https://drawingappmobile.onrender.com:3000';
 
 export default function CanvasScreen({ roomId, onLogout }: CanvasScreenProps) {
   // États locaux de l'application
