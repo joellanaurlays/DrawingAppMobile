@@ -16,3 +16,5 @@ Thumbs.db
 
 # logs
 *.log
+serviceAccountKey.json
+src/config/serviceAccountKey.json
