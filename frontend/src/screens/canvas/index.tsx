@@ -58,6 +58,22 @@ export default function CanvasScreen({ roomId, onLogout }: CanvasScreenProps) {
         setCurrentLines([]);
       });
 
+      // Écouter un tracé qui commence chez un autre utilisateur
+      socketRef.current.on('receive-cursor-start', (newLine: Line) => {
+        setCurrentLines((prev) => [...prev, newLine]);
+      });
+
+      // Écouter la mise à jour continue du tracé de l'autre utilisateur
+      socketRef.current.on('receive-cursor-move', (updatedPath: string) => {
+        setCurrentLines((prev) => {
+          const next = [...prev];
+          if (next.length > 0) {
+            next[next.length - 1].path = updatedPath;
+          }
+          return next;
+        });
+      });
+
       return () => {
         if (socketRef.current) {
           socketRef.current.disconnect();
@@ -65,23 +81,26 @@ export default function CanvasScreen({ roomId, onLogout }: CanvasScreenProps) {
       };
   }, [roomId]);
 
-  // Gestionnaire des mouvements tactiles et de souris (PanResponder)
+  // Gestionnaire des mouvements (PanResponder) mis à jour pour le vrai temps réel
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       
-      // Début du tracé au premier contact
+      // 1. Début du tracé
       onPanResponderGrant: (evt: GestureResponderEvent) => {
         const { locationX, locationY } = evt.nativeEvent;
         currentPath.current = `M ${locationX.toFixed(1)} ${locationY.toFixed(1)}`;
-        setCurrentLines((prev) => [
-          ...prev, 
-          { path: currentPath.current, color: activeColor, strokeWidth: strokeWidth }
-        ]);
+        
+        const newLine: Line = { path: currentPath.current, color: activeColor, strokeWidth: strokeWidth };
+        
+        setCurrentLines((prev) => [...prev, newLine]);
+
+        //signale immédiatement au serveur qu'on commence une ligne
+        socketRef.current?.emit('draw-cursor-start', { room: roomId, line: newLine });
       },
       
-      // Mise à jour du tracé pendant le déplacement
+      // 2. Pendant le déplacement (Vrai Temps Réel)
       onPanResponderMove: (evt: GestureResponderEvent) => {
         const { locationX, locationY } = evt.nativeEvent;
         if (currentPath.current) {
@@ -98,10 +117,16 @@ export default function CanvasScreen({ roomId, onLogout }: CanvasScreenProps) {
             }
             return next;
           });
+
+          // On envoie la mise à jour du tracé en continu pendant le mouvement
+          socketRef.current?.emit('draw-cursor-move', { 
+            room: roomId, 
+            path: currentPath.current 
+          });
         }
       },
       
-      // Fin du tracé et envoi de la ligne complète au serveur
+      // 3. Fin du tracé
       onPanResponderRelease: () => {
         if (currentPath.current && socketRef.current) {
           const finishedLine: Line = { 
@@ -109,7 +134,7 @@ export default function CanvasScreen({ roomId, onLogout }: CanvasScreenProps) {
             color: activeColor, 
             strokeWidth: strokeWidth 
           };
-          // Utilisation du roomId dynamique
+          // On valide la ligne définitive auprès du serveur
           socketRef.current.emit('send-line', { room: roomId, line: finishedLine });
         }
         currentPath.current = '';

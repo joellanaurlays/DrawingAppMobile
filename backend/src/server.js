@@ -53,6 +53,17 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`Utilisateur déconnecté — ID : ${socket.id}`);
   });
+
+  // Relayer le début d'un tracé en temps réel
+  socket.on('draw-cursor-start', ({ room, line }) => {
+    socket.to(room).emit('receive-cursor-start', line);
+  });
+
+  // Relayer le mouvement du tracé en temps réel
+  socket.to(room).emit('receive-cursor-move', path);
+  socket.on('draw-cursor-move', ({ room, path }) => {
+    socket.to(room).emit('receive-cursor-move', path);
+  });
 });
 
 // Démarrage du serveur sur le port 3000
