@@ -1,3 +1,4 @@
+// src/screens/canvas/index.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Text, 
@@ -166,7 +167,7 @@ export default function CanvasScreen({ roomId, onLogout }: CanvasScreenProps) {
   return (
     <View style={styles.container}>
       
-      {{/* header */}}
+      {/* header */}
       <View style={styles.headerBar}>
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
           {/* Icône symbolisant la clé ou la copie */}
@@ -192,7 +193,7 @@ export default function CanvasScreen({ roomId, onLogout }: CanvasScreenProps) {
         </TouchableOpacity>
       </View>
 
-      {{/* canvas */}}
+      {/* canvas */}
       <View style={styles.canvasContainer}>
         {/* La View intercepte tous les gestes de l'utilisateur grâce au panResponder */}
         <View style={styles.canvas} {...panResponder.panHandlers}>
@@ -221,7 +222,7 @@ export default function CanvasScreen({ roomId, onLogout }: CanvasScreenProps) {
         </View>
       </View>
 
-      {{/* Réglages et barre d'outils */}}
+      {/* Réglages et barre d'outils */}
       <View style={styles.controlPanel}>
         
         {/* Section de sélection du diamètre du pinceau */}
